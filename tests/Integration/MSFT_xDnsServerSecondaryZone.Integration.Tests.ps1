@@ -20,13 +20,15 @@ $script:testEnvironment = Initialize-TestEnvironment `
 try
 {
     # List available images on the build worker.
-    docker images
+    Write-Verbose -Message ('Available docker images: {0}' -f (docker images | Out-String)) -Verbose
 
     <#
         Set the location to repository root to allow Dockerfile's 'COPY' to get
         to files outside of its normal build context.
     #>
     Set-Location -Path "$PSScriptRoot/../.."
+
+    Write-Verbose -Message 'Building docker image ''dnsserversecondaryzone''.' -Verbose
 
     <#
         Build the docker container image used in this integration test. Tagging the image
@@ -36,6 +38,8 @@ try
 
     # Get the image identifier.
     $imageId = docker inspect --format "{{.ID}}" dnsserversecondaryzone
+
+    Write-Verbose -Message ('Built docker image: {0}' -f $imageId) -Verbose
 
     <#
         Start the container image and return the container identifier. It possible to
@@ -48,8 +52,10 @@ try
     #>
     $containerId = docker run --detach --name dnsserversecondaryzone $imageId
 
+    Write-Verbose -Message ('Started container: {0}' -f $containerId) -Verbose
+
     # List all the running containers.
-    docker ps
+    Write-Verbose -Message ('Running docker containers: {0}' -f (docker ps | Out-String)) -Verbose
 
     # Set location back to script root.
     Set-Location -Path $PSScriptRoot
