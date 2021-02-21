@@ -1,5 +1,5 @@
 $script:dscModuleName = 'xDnsServer'
-$script:dscResourceFriendlyName = 'xDnsServerPrimaryZone'
+$script:dscResourceFriendlyName = 'xDnsServerSecondaryZone'
 $script:dscResourceName = "MSFT_$($script:dscResourceFriendlyName)"
 
 try
@@ -20,7 +20,7 @@ $script:testEnvironment = Initialize-TestEnvironment `
 try
 {
     # List available images on the build worker.
-    Write-Verbose -Message ('Available docker images: {0}' -f (docker images | Out-String)) -Verbose
+    Write-Verbose -Message ("Available docker images:`r`n{0}" -f (docker images | Out-String)) -Verbose
 
     <#
         Set the location to repository root to allow Dockerfile's 'COPY' to get
@@ -55,7 +55,7 @@ try
     Write-Verbose -Message ('Started container: {0}' -f $containerId) -Verbose
 
     # List all the running containers.
-    Write-Verbose -Message ('Running docker containers: {0}' -f (docker ps | Out-String)) -Verbose
+    Write-Verbose -Message ("Running docker containers:`r`n{0}" -f (docker ps | Out-String)) -Verbose
 
     # Set location back to script root.
     Set-Location -Path $PSScriptRoot
