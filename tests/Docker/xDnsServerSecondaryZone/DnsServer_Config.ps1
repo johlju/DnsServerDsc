@@ -54,6 +54,16 @@ configuration ConfigureDns_Config
         {
             Name = $Node.ClasslessReverseZoneName
         }
+
+        # Creates an A record.
+        xDnsRecord 'TestRecord'
+        {
+            Name   = 'testhost'
+            Target = '192.168.1.10'
+            Zone   = $Node.ForwardZoneName
+            Type   = 'ARecord'
+            Ensure = 'Present'
+        }
     }
 }
 

@@ -31,26 +31,53 @@ try
     Write-Verbose -Message 'Building docker image ''dnsserversecondaryzone''.' -Verbose
 
     <#
-        Build the docker container image used in this integration test. Tagging the image
-        with the name of the integration test.
+        Build the docker container image used in this integration test. Tagging the
+        image with the name of the integration test.
+
+        The output from this is meant to be shown in Azure Pipelines output, but
+        unfortunately the output from this is not shown.
     #>
     docker build -f .\Tests\Docker\xDnsServerSecondaryZone\Dockerfile -t dnsserversecondaryzone .
 
     # Get the image identifier.
-    $imageId = docker inspect --format "{{.ID}}" dnsserversecondaryzone
+    $imageId = docker inspect --format "{{.ID}}" dnsserversecondaryzone:latest
 
     Write-Verbose -Message ('Built docker image: {0}' -f $imageId) -Verbose
+
+    Write-Verbose -Message ('Creating a user-defined network bridge ''dnsserversecondaryzone-net''.' -f $imageId) -Verbose
+
+    $networkId = docker network create --driver nat dnsserversecondaryzone-net
 
     <#
         Start the container image and return the container identifier. It possible to
         debug the container locally after it has started by running the following:
 
+            $containerId = docker inspect --format "{{.ID}}" dnsserversecondaryzone
             Enter-PSSession -ContainerId $containerId -RunAsAdministrator
 
         It must run with elevated permissions otherwise it throws the exception:
         "...does not exist, or the corresponding container is not running."
+
+        DNS mainly uses the UDP protocol - except for zone transfer which use TCP.
+
+        Get the firewall rules with:
+
+            Get-NetFirewallRule -DisplayGroup 'DNS Service' | Where-Object -FilterScript { $_.Enabled -eq $true } | Format-Table
+
+        Test DNS Server from inside container
+
+            ipconfig
+            nslookup dsc.test ipaddress_from_ouput_above
+
+        Test DNS Server from host with (try a zone transfer):
+
+            (docker network inspect dnsserversecondaryzone-net --format "{{.Containers.$containerId.IPv4Address}}") -split '/'
+            nslookup
+            set port=53000
+            server ipaddress_from_ouput_above
+            ls dsc.test
     #>
-    $containerId = docker run --detach --name dnsserversecondaryzone $imageId
+    $containerId = docker run --network dnsserversecondaryzone-net --publish 53000:53/udp --publish 53000:53/tcp --detach --hostname dns01 --name dnsserversecondaryzone $imageId
 
     Write-Verbose -Message ('Started container: {0}' -f $containerId) -Verbose
 
@@ -478,6 +505,11 @@ finally
 
         # Remove the container.
         docker rm $containerId | Out-Null
+    }
+
+    if ($networkId)
+    {
+        docker network rm $networkId | Out-Null
     }
 
     if ($imageId)
